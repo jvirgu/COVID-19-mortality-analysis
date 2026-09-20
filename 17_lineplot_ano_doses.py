@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.lines import Line2D
+from scipy.stats import chi2_contingency
 
 # ─────────────────────────────────────────────────────────────────────────
 XLSX_PATH = "703pacientes.xlsx"
@@ -41,7 +42,14 @@ n_obitos = int(dados["Óbito"].sum())
 anos_todos = sorted(dados["Ano"].unique())
 
 # ════════════════════════════════════════════════════════════
-# 2. GRÁFICO ÚNICO — todas as combinações dose × desfecho
+# 2. TESTE QUI-QUADRADO (associação entre nº de doses e desfecho)
+# ════════════════════════════════════════════════════════════
+tab_chi2 = pd.crosstab(dados["Vacinas"], dados["Óbito"])
+chi2, p_chi2, dof, _ = chi2_contingency(tab_chi2)
+p_chi2_str = "p<0,001" if p_chi2 < 0.001 else f"p={p_chi2:.3f}".replace(".", ",")
+
+# ════════════════════════════════════════════════════════════
+# 3. GRÁFICO ÚNICO — todas as combinações dose × desfecho
 # ════════════════════════════════════════════════════════════
 fig, ax = plt.subplots(figsize=(12, 7.5), facecolor=BG)
 ax.set_facecolor(PANEL)
@@ -101,6 +109,13 @@ for dose in sorted(DOSE_LABELS):
 ax.legend(handles=legend_elements, fontsize=10, frameon=True, edgecolor=BORDER,
           facecolor=BG, labelcolor=TEXT, loc="upper left", framealpha=0.97,
           ncol=1)
+
+# Anotação do teste qui-quadrado (Vacinas × Óbito)
+ax.text(0.99, 0.98, f"χ²={chi2:.2f}, gl={dof}, {p_chi2_str}",
+        transform=ax.transAxes, fontsize=10, color="#555555",
+        ha="right", va="top",
+        bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray",
+                  alpha=0.95, linewidth=0.7))
 
 fig.text(0.5, 0.985, "Altas e Óbitos por Ano — Número de Doses de Vacina",
           ha="center", va="top", fontsize=18, fontweight="bold", color=TEXT)
