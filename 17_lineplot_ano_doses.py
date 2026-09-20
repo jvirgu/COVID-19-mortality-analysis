@@ -1,10 +1,17 @@
 import os
 
+import warnings
+
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.lines import Line2D
 from scipy.stats import chi2_contingency
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+warnings.filterwarnings("ignore")
 
 # ─────────────────────────────────────────────────────────────────────────
 XLSX_PATH = "703pacientes.xlsx"
@@ -54,17 +61,37 @@ def formata_p(p):
 
 p_chi2_str = formata_p(p_chi2)
 
-chi2_por_ano = {}
+# ════════════════════════════════════════════════════════════
+# 2b. REGRESSÃO LOGÍSTICA POR ANO — OR de cada dose vs. referência
+#     (nenhuma dose), ajustada separadamente nos dados de cada ano
+# ════════════════════════════════════════════════════════════
+texto_por_ano = {}
 for ano in anos_todos:
-    tab_ano = pd.crosstab(dados.loc[dados["Ano"] == ano, "Vacinas"],
-                           dados.loc[dados["Ano"] == ano, "Óbito"])
-    if tab_ano.shape[0] > 1 and tab_ano.shape[1] > 1:
-        chi2_ano, p_ano, dof_ano, exp_ano = chi2_contingency(tab_ano)
-        nota = "*" if exp_ano.min() < 5 else ""
-        chi2_por_ano[ano] = (f"χ²={chi2_ano:.2f}, gl={dof_ano}{nota}\n"
-                              f"{formata_p(p_ano)}")
-    else:
-        chi2_por_ano[ano] = "Apenas um grupo\n(não aplicável)"
+    sub_ano = dados[dados["Ano"] == ano]
+    doses_presentes = sorted(sub_ano["Vacinas"].unique())
+    if len(doses_presentes) < 2:
+        texto_por_ano[ano] = "Apenas um grupo\n(regressão não aplicável)"
+        continue
+
+    sub_dummies = pd.get_dummies(sub_ano, columns=["Vacinas"], dtype=int,
+                                  drop_first=True)
+    linhas = [f"Regressão logística {ano}\n(ref.: nenhuma dose)"]
+    for dose in doses_presentes:
+        if dose == 0:
+            continue
+        var = f"Vacinas_{dose}"
+        if var not in sub_dummies.columns:
+            continue
+        modelo = smf.glm(f"Óbito ~ {var}", data=sub_dummies,
+                          family=sm.families.Binomial()).fit()
+        beta = modelo.params[var]
+        p = modelo.pvalues[var]
+        or_val = np.exp(beta)
+        if or_val < 1e-6:
+            linhas.append(f"{DOSE_LABELS[dose]}: OR não estimável")
+        else:
+            linhas.append(f"{DOSE_LABELS[dose]}: OR={or_val:.2f} ({formata_p(p)})")
+    texto_por_ano[ano] = "\n".join(linhas)
 
 # ════════════════════════════════════════════════════════════
 # 3. GRÁFICO ÚNICO — todas as combinações dose × desfecho
@@ -111,13 +138,13 @@ ax.tick_params(axis="x", length=0, pad=8)
 ax.yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
 ax.set_ylabel("Número de pacientes", fontsize=13, color=SUBTEXT, labelpad=8)
 ymin, ymax = ax.get_ylim()
-ax.set_ylim(-ymax * 0.05, ymax * 1.30)
+ax.set_ylim(-ymax * 0.05, ymax * 1.55)
 
-# Anotações do teste qui-quadrado por ano
+# Anotações da regressão logística por ano (OR vs. referência)
 for ano in anos_todos:
-    ax.text(ano, ymax * 1.26, chi2_por_ano[ano], ha="center", va="top",
-            fontsize=9, color="#333333",
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray",
+    ax.text(ano, ymax * 1.51, texto_por_ano[ano], ha="center", va="top",
+            fontsize=8.5, color="#333333",
+            bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="gray",
                       alpha=0.9, linewidth=0.8))
 
 # Legenda (fora do painel, à direita): cor = desfecho, estilo = nº de doses
@@ -142,11 +169,12 @@ fig.text(0.44, 0.945,
           f"χ² global={chi2:.2f}, gl={dof}, {p_chi2_str}",
           ha="center", va="top", fontsize=12, color=SUBTEXT)
 fig.text(0.13, 0.02,
-          "* Uma ou mais categorias com frequência esperada < 5 "
-          "(aproximação do qui-quadrado pode ser menos precisa)",
+          "OR = razão de chances (Óbito ~ dose), regressão logística "
+          "bruta ajustada separadamente em cada ano | "
+          "algumas categorias têm n pequeno — interpretar com cautela",
           ha="left", va="bottom", fontsize=9, style="italic", color=SUBTEXT)
 
-plt.tight_layout(rect=[0, 0.03, 0.83, 0.92])
+plt.tight_layout(rect=[0, 0.03, 0.83, 0.90])
 plt.savefig(OUTPUT_PNG, dpi=180, bbox_inches="tight", facecolor=BG)
 print(f"Gráfico salvo em: {OUTPUT_PNG}")
 plt.show()
