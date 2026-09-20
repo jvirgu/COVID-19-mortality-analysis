@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mticker
 from matplotlib.lines import Line2D
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
@@ -186,6 +187,14 @@ def draw_panel(ax, col_or, col_lo, col_hi, col_p, title, xlim):
     ax.tick_params(axis="x", colors=SUBTEXT, labelsize=14)
     ax.set_ylim(n_rows - 0.5, -0.5)
     ax.set_xlim(*xlim)
+
+    # Ticks explícitos no eixo log — evita a sobreposição dos rótulos
+    # automáticos (3×10⁻¹, 4×10⁻¹, 6×10⁻¹, ...) do LogLocator padrão.
+    ticks_principais = [t for t in [0.3, 0.5, 1, 2, 3] if xlim[0] <= t <= xlim[1]]
+    ax.set_xticks(ticks_principais)
+    ax.set_xticklabels([f"{t:g}".replace(".", ",") for t in ticks_principais])
+    ax.xaxis.set_minor_locator(mticker.NullLocator())
+
     ax.set_xlabel("Odds Ratio (escala log)", fontsize=20,
                   color=SUBTEXT, labelpad=6)
     ax.set_title(title, fontsize=20, fontweight="bold", color=TEXT, pad=5)
@@ -212,13 +221,11 @@ legend_elements = [
     Line2D([0], [0], color=GOLD, linewidth=1.2,
            linestyle="--", label="Linha de referência (OR = 1)"),
 ]
-ax_or.legend(handles=legend_elements, fontsize=8, frameon=True,
-             edgecolor=BORDER, facecolor=BG, labelcolor=TEXT,
-             loc="lower left", framealpha=0.97,
-             borderpad=0.9, handlelength=0.5)
+# Deixa espaço acima dos eixos para título, subtítulo e legenda
+fig.subplots_adjust(left=0.08, right=0.97, bottom=0.14, top=0.74, wspace=0.04)
 
 # ── Título principal ────────────────────────────────────────────────────
-fig.text(0.50, 1.14,
+fig.text(0.50, 1.30,
          "Forest Plot — Status Vacinal vs. Óbito Hospitalar",
          ha="center", va="top",
          fontsize=30, fontweight="bold", color=TEXT)
@@ -226,20 +233,17 @@ fig.text(0.50, 1.14,
 # ── Subtítulo dinâmico ───────────────────────────────────────────────────
 subtitle = (f"Categoria de referência: não vacinado | "
             f"n total = {n_total} | Óbitos = {n_deaths}")
-fig.text(0.50, 1.02, subtitle,
+fig.text(0.50, 1.17, subtitle,
          ha="center", va="top", fontsize=20, color=SUBTEXT)
 fig.add_artist(plt.Line2D(
-    [0.13, 0.97], [0.96, 0.96],
+    [0.13, 0.97], [1.10, 1.10],
     transform=fig.transFigure, color=BORDER, linewidth=1.8))
-fig.text(0.03, -0.16,
-         "*** p<0,001 ** p<0,01 * p<0,05 | "
-         "OR = Odds Ratio; IC = Intervalo de Confiança de 95% | "
-         "Losango preenchido = p < 0,05 | — = OR não estimável | "
-         "Ajustado por sexo, comorbidades, idade, estado civil, "
-         "escolaridade e tempo de internação",
-         color=SUBTEXT, fontsize=12, style="italic")
 
-plt.tight_layout(rect=[0, 0.03, 1, 1.94])
+# ── Legenda (uma única linha, entre a referência e os painéis de OR) ──────
+fig.legend(handles=legend_elements, fontsize=13, frameon=False,
+           labelcolor=TEXT, loc="upper center", ncol=5,
+           bbox_to_anchor=(0.55, 1.02), columnspacing=1.6,
+           handlelength=1.4, handletextpad=0.6)
 plt.savefig(OUTPUT_PNG, dpi=180, bbox_inches="tight", facecolor=BG)
 print(f"Gráfico salvo em: {OUTPUT_PNG}")
 plt.show()
