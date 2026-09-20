@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.lines import Line2D
+from PIL import Image
 
 # ── 1. CARREGAR DADOS ─────────────────────────────────────────────────────
 df = pd.read_excel("703pacientes.xlsx")
@@ -124,6 +125,8 @@ plt.tight_layout()
 # ── 7. SALVAR ────────────────────────────────────────────────────────────
 plt.savefig("grafico_tendencia_covid_pt.png", dpi=300, bbox_inches="tight")
 plt.savefig("grafico_tendencia_covid_pt.pdf", bbox_inches="tight")
-plt.savefig("grafico_tendencia_covid_pt.tiff", dpi=300, bbox_inches="tight")
+# TIFF com compressão LZW (o TIFF sem compressão do matplotlib passa de 50MB)
+Image.open("grafico_tendencia_covid_pt.png").save(
+    "grafico_tendencia_covid_pt.tiff", dpi=(300, 300), compression="tiff_lzw")
 plt.show()
 print("Gráfico salvo como PNG, PDF e TIFF com sucesso.")

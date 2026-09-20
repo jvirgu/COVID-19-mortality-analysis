@@ -142,7 +142,14 @@ fig.text(0.5, 0.955,
 
 plt.tight_layout(rect=[0, 0, 1, 0.94])
 plt.savefig(OUTPUT_PNG, dpi=180, bbox_inches="tight", facecolor=BG)
-plt.savefig(OUTPUT_TIFF, dpi=300, bbox_inches="tight", facecolor=BG)
+
+# TIFF com compressão LZW (o TIFF sem compressão do matplotlib passa de 50MB)
+from PIL import Image  # noqa: E402
+_buf_png = OUTPUT_PNG.replace(".png", "_300dpi_tmp.png")
+plt.savefig(_buf_png, dpi=300, bbox_inches="tight", facecolor=BG)
+Image.open(_buf_png).save(OUTPUT_TIFF, dpi=(300, 300), compression="tiff_lzw")
+os.remove(_buf_png)
+
 print(f"Gráfico salvo em: {OUTPUT_PNG} e {OUTPUT_TIFF}")
 print(f"Log-rank (data de admissão): p={p_lr_data:.4f}")
 print(f"Log-rank (dias de internação): p={p_lr_dias:.4f}")
