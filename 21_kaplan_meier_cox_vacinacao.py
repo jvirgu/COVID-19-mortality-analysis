@@ -18,6 +18,8 @@ warnings.filterwarnings("ignore")
 XLSX_PATH = "703pacientes.xlsx"
 OUTPUT_PNG = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "kaplan_meier_cox_vacinacao.png")
+OUTPUT_TIFF = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "kaplan_meier_cox_vacinacao.tiff")
 
 # ── Paleta ────────────────────────────────────────────────────────────────
 BG = "#FFFFFF"
@@ -140,7 +142,8 @@ fig.text(0.5, 0.955,
 
 plt.tight_layout(rect=[0, 0, 1, 0.94])
 plt.savefig(OUTPUT_PNG, dpi=180, bbox_inches="tight", facecolor=BG)
-print(f"Gráfico salvo em: {OUTPUT_PNG}")
+plt.savefig(OUTPUT_TIFF, dpi=300, bbox_inches="tight", facecolor=BG)
+print(f"Gráfico salvo em: {OUTPUT_PNG} e {OUTPUT_TIFF}")
 print(f"Log-rank (data de admissão): p={p_lr_data:.4f}")
 print(f"Log-rank (dias de internação): p={p_lr_dias:.4f}")
 print(f"Cox HR (data de admissão, ajustado por ano): {hr:.3f} [{lo:.3f}-{hi:.3f}] p={p_cox:.4f}")
