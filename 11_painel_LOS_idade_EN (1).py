@@ -114,6 +114,20 @@ for g in ordem_grupos:
     for lbl, serie in [("Discharge", disch), ("Death", death)]:
         sw_por_grupo[g][lbl] = stats.shapiro(serie) if len(serie) >= 3 else None
 
+# --- Mann-Whitney U: each age group vs the 0-18 reference group (Panel B) ---
+GRUPO_REF = "0-18"
+los_ref = df[df["Grupo_etario"] == GRUPO_REF]["Dias_permanência"]
+mw_vs_ref = {}
+for g in ordem_grupos:
+    if g == GRUPO_REF:
+        continue
+    los_g = df[df["Grupo_etario"] == g]["Dias_permanência"]
+    u = stats.mannwhitneyu(los_g, los_ref, alternative="two-sided")
+    mw_vs_ref[g] = dict(
+        p=u.pvalue, med_g=los_g.median(), med_ref=los_ref.median(),
+        n_g=len(los_g), n_ref=len(los_ref)
+    )
+
 # --- console output (for copying as text/note) ---
 print("=" * 70)
 print("SHAPIRO-WILK (normality of the LOS distribution, by outcome)")
@@ -133,6 +147,17 @@ for g in ordem_grupos:
     r = mw_resultados[g]
     txt_p = "< 0.001" if r["p"] < 0.001 else f"= {r['p']:.4f}"
     print(f"{g}: Death md={r['med_death']} (n={r['n_death']}) vs Discharge md={r['med_disch']} (n={r['n_disch']}) "
+          f"-> p {txt_p} ({estrelas(r['p'])})")
+print()
+print("=" * 70)
+print(f"MANN-WHITNEY U (each age group vs reference group {GRUPO_REF}), Panel B")
+print("=" * 70)
+for g in ordem_grupos:
+    if g == GRUPO_REF:
+        continue
+    r = mw_vs_ref[g]
+    txt_p = "< 0.001" if r["p"] < 0.001 else f"= {r['p']:.4f}"
+    print(f"{g} (md={r['med_g']}, n={r['n_g']}) vs {GRUPO_REF} (md={r['med_ref']}, n={r['n_ref']}) "
           f"-> p {txt_p} ({estrelas(r['p'])})")
 print()
 
@@ -243,18 +268,24 @@ for i, g in enumerate(ordem_grupos):
                      ha="center", fontsize=6.6, color=cor, fontweight="bold",
                      bbox=dict(facecolor="white", alpha=0.75, edgecolor="none", pad=1))
 
-# brackets with the Mann-Whitney U p-value above each pair of boxes
-y_topo = 95
-y0 = 84
-for i, g in enumerate(ordem_grupos):
-    p = mw_resultados[g]["p"]
+# brackets with the Mann-Whitney U p-value: each age group vs the 0-18 reference
+ref_idx = ordem_grupos.index(GRUPO_REF)
+y0 = 88
+passo = 9
+y_topo = y0 + passo * (len(ordem_grupos) - 1) + 8
+for k, i in enumerate(idx for idx, g in enumerate(ordem_grupos) if g != GRUPO_REF):
+    g = ordem_grupos[i]
+    p = mw_vs_ref[g]["p"]
     txt = f"p = {p:.3f}" if p >= 0.001 else "p < 0.001"
     if p < 0.05:
         txt += f" ({estrelas(p)})"
-    x1, x2 = i - 0.18, i + 0.18
-    axB.plot([x1, x1, x2, x2], [y0, y0 + 2.5, y0 + 2.5, y0], lw=0.9, color="#555555", clip_on=False)
-    axB.text((x1 + x2) / 2, y0 + 3.3, txt, ha="center", va="bottom", fontsize=7.6, color="#333333")
+    y = y0 + k * passo
+    x1, x2 = ref_idx, i
+    axB.plot([x1, x1, x2, x2], [y, y + 2.5, y + 2.5, y], lw=0.9, color="#555555", clip_on=False)
+    axB.text((x1 + x2) / 2, y + 3.3, txt, ha="center", va="bottom", fontsize=7.6, color="#333333")
 
+axB.text(ref_idx, y_topo - 2, "reference", ha="center", va="top", fontsize=7,
+          color="#555555", style="italic")
 axB.set_ylim(0, y_topo)
 axB.text(-0.09, 1.05, "B)", transform=axB.transAxes, fontsize=15, fontweight="bold")
 
