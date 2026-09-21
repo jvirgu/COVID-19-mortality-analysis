@@ -47,7 +47,11 @@ CORES = {"Não vacinados": COR_NAO_VAC, "Vacinados": COR_VAC}
 
 
 def formata_p(p):
-    return "p<0,001" if p < 0.001 else f"p={p:.3f}"
+    return "p<0,001" if p < 0.001 else f"p={p:.3f}".replace(".", ",")
+
+
+MESES_PT = {1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
+            7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez"}
 
 
 # ════════════════════════════════════════════════════════════
@@ -65,15 +69,17 @@ def plota_km(ax, coluna_tempo, titulo_eixo_x, eixo_como_data=False):
     ax.set_xlabel(titulo_eixo_x, fontsize=12, color=SUBTEXT)
     ax.set_ylabel("Probabilidade de sobrevida", fontsize=12, color=SUBTEXT)
     ax.set_ylim(0, 1.03)
-    ax.set_title("2021-2022", fontsize=14, fontweight="bold", color=TEXT)
-    ax.legend(fontsize=9, frameon=False)
+    ax.set_title("2021-2022", fontsize=14, fontweight="bold", color=TEXT,
+                 loc="left")
+    ax.legend(fontsize=9, frameon=False, loc="upper right")
     ax.grid(alpha=0.25)
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
     if eixo_como_data:
         def fmt_data(x, _):
-            return (data_min + pd.Timedelta(days=x)).strftime("%b/%Y")
+            data = data_min + pd.Timedelta(days=x)
+            return f"{MESES_PT[data.month]}/{data.year}"
         ax.xaxis.set_major_formatter(plt.FuncFormatter(fmt_data))
         plt.setp(ax.get_xticklabels(), rotation=0)
 
@@ -103,35 +109,38 @@ def cox_hr_ajustado(coluna_tempo):
 # ════════════════════════════════════════════════════════════
 fig, axes = plt.subplots(2, 2, figsize=(15, 11), facecolor=BG)
 
+CAIXA_ANOTACAO = dict(boxstyle="round,pad=0.35", fc="white", ec="#D0D7DE",
+                       alpha=0.95, linewidth=0.8)
+
 # Linha 1: curvas de KM + teste de log-rank
 plota_km(axes[0, 0], "Dias_desde_inicio", "Data de admissão", eixo_como_data=True)
 p_lr_data = teste_logrank("Dias_desde_inicio")
-axes[0, 0].text(0.98, 0.03, f"Log-rank: {formata_p(p_lr_data)}",
-                 transform=axes[0, 0].transAxes, ha="right", va="bottom",
-                 fontsize=10, style="italic", color=TEXT)
+axes[0, 0].text(0.03, 0.03, f"Log-rank: {formata_p(p_lr_data)}",
+                 transform=axes[0, 0].transAxes, ha="left", va="bottom",
+                 fontsize=10, style="italic", color=TEXT, bbox=CAIXA_ANOTACAO)
 
 plota_km(axes[0, 1], "Dias_permanência", "Tempo de internação (dias)")
 p_lr_dias = teste_logrank("Dias_permanência")
-axes[0, 1].text(0.98, 0.03, f"Log-rank: {formata_p(p_lr_dias)}",
-                 transform=axes[0, 1].transAxes, ha="right", va="bottom",
-                 fontsize=10, style="italic", color=TEXT)
+axes[0, 1].text(0.03, 0.03, f"Log-rank: {formata_p(p_lr_dias)}",
+                 transform=axes[0, 1].transAxes, ha="left", va="bottom",
+                 fontsize=10, style="italic", color=TEXT, bbox=CAIXA_ANOTACAO)
 
 # Linha 2: mesmas curvas + HR de Cox ajustado por ano
 plota_km(axes[1, 0], "Dias_desde_inicio", "Data de admissão", eixo_como_data=True)
 hr, lo, hi, p_cox = cox_hr_ajustado("Dias_desde_inicio")
-axes[1, 0].text(0.98, 0.03,
+axes[1, 0].text(0.03, 0.03,
                  f"HR de Cox (ajustado por ano) = {hr:.2f} ({lo:.2f}–{hi:.2f})\n"
                  f"{formata_p(p_cox)}",
-                 transform=axes[1, 0].transAxes, ha="right", va="bottom",
-                 fontsize=10, style="italic", color=TEXT)
+                 transform=axes[1, 0].transAxes, ha="left", va="bottom",
+                 fontsize=10, style="italic", color=TEXT, bbox=CAIXA_ANOTACAO)
 
 plota_km(axes[1, 1], "Dias_permanência", "Tempo de internação (dias)")
 hr2, lo2, hi2, p_cox2 = cox_hr_ajustado("Dias_permanência")
-axes[1, 1].text(0.98, 0.03,
+axes[1, 1].text(0.03, 0.03,
                  f"HR de Cox (ajustado por ano) = {hr2:.2f} ({lo2:.2f}–{hi2:.2f})\n"
                  f"{formata_p(p_cox2)}",
-                 transform=axes[1, 1].transAxes, ha="right", va="bottom",
-                 fontsize=10, style="italic", color=TEXT)
+                 transform=axes[1, 1].transAxes, ha="left", va="bottom",
+                 fontsize=10, style="italic", color=TEXT, bbox=CAIXA_ANOTACAO)
 
 fig.suptitle("Curvas de Kaplan-Meier — Sobrevida Hospitalar por Status Vacinal "
              "(2021-2022)", fontsize=19, fontweight="bold", color=TEXT, y=0.985)
