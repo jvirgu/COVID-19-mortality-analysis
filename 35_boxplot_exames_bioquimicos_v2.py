@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mticker
 from PIL import Image
 from scipy.stats import mannwhitneyu
 
@@ -169,36 +170,39 @@ for rotulo, info in significativas.items():
 print("=" * 90)
 
 
-# Eixos com marcações fixas, reproduzindo exatamente a imagem de
-# referência (mesmas marcações em todas as variáveis).
+# Eixos com faixa fixa (min, max), baseada na imagem de referência mas
+# estendida o quanto baste em cada variável para caber todo o intervalo
+# whisker (Q1-1,5×IQR a Q3+1,5×IQR) de Alta e de Óbito, evitando cortar
+# caixas/whiskers. As marcações do eixo são escolhidas automaticamente
+# dentro dessa faixa (MaxNLocator) para não poluir com marcações demais.
 TICKS_MANUAL = {
-    "Creatinina": [0, 1, 2, 3, 4, 5],
-    "Ureia": [0, 25, 50, 75, 100, 125, 150, 175],
-    "D-dímero": [0, 2, 4, 6, 8, 10],
-    "TTPA": [0.8, 1.0, 1.2, 1.4],
-    "TP/INR": [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7],
-    "HbA1c": [4, 5, 6, 7, 8, 9, 10],
-    "Glicemia/jejum": [50, 100, 150, 200, 250, 300],
-    "TGO": [0, 50, 100, 150, 200, 250],
-    "TGP": [0, 50, 100, 150, 200, 250],
-    "Bilirrubina": [0.00, 0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75],
-    "Fosfatase alcalina": [0, 100, 200, 300, 400, 500],
-    "Gama GT": [0, 100, 200, 300, 400, 500],
-    "Albumina": [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
-    "Troponina I": [0, 50, 100, 150, 200, 250, 300],
-    "CPK": [0, 500, 1000, 1500, 2000, 2500],
-    "CK-MB": [0, 10, 20, 30, 40, 50],
-    "Colesterol total": [80, 100, 120, 140, 160, 180, 200, 220],
-    "LDL colesterol": [40, 60, 80, 100, 120, 140],
-    "HDL colesterol": [20, 25, 30, 35, 40, 45, 50, 55],
-    "Ferritina": [0, 1000, 2000, 3000, 4000],
-    "Proteína C reativa": [0, 5, 10, 15, 20, 25],
-    "Lactato": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5],
-    "LDH": [0, 500, 1000, 1500, 2000],
-    "Cálcio ionizado": [0.9, 1.0, 1.1, 1.2, 1.3],
-    "Sódio": [130, 135, 140, 145, 150],
-    "Potássio": [3.0, 3.5, 4.0, 4.5, 5.0, 5.5],
-    "Magnésio": [1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8],
+    "Creatinina": (0, 6),
+    "Ureia": (0, 250),
+    "D-dímero": (0, 20),
+    "TTPA": (0.6, 2.0),
+    "TP/INR": (0.8, 1.7),
+    "HbA1c": (4, 13),
+    "Glicemia/jejum": (50, 350),
+    "TGO": (0, 250),
+    "TGP": (0, 250),
+    "Bilirrubina": (0.00, 1.75),
+    "Fosfatase alcalina": (0, 700),
+    "Gama GT": (0, 600),
+    "Albumina": (1.0, 5.0),
+    "Troponina I": (0, 550),
+    "CPK": (0, 2500),
+    "CK-MB": (0, 70),
+    "Colesterol total": (80, 260),
+    "LDL colesterol": (40, 180),
+    "HDL colesterol": (15, 70),
+    "Ferritina": (0, 4000),
+    "Proteína C reativa": (0, 35),
+    "Lactato": (0.0, 5.0),
+    "LDH": (0, 2500),
+    "Cálcio ionizado": (0.9, 1.4),
+    "Sódio": (125, 155),
+    "Potássio": (2.5, 6.0),
+    "Magnésio": (1.2, 3.2),
 }
 
 
@@ -389,8 +393,8 @@ def desenha_boxplot(ax, rotulo):
         tick.set_fontweight("bold")
 
     ax.set_xlim(*xlim)
-    if rotulo in TICKS_MANUAL:
-        ax.set_xticks(TICKS_MANUAL[rotulo])
+    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=6, min_n_ticks=4,
+                                                    steps=[1, 2, 2.5, 5, 10]))
     ax.tick_params(axis="x", labelsize=9, colors=SUBTEXT)
 
     ax.text(0.5, 1.20, formata_p(info["p"]), transform=ax.transAxes,
