@@ -366,7 +366,7 @@ def desenha_boxplot(ax, rotulo):
         patch_artist=True, showfliers=True, whis=1.5,
         medianprops=dict(color="white", linewidth=1.8),
         flierprops=dict(marker="o", markersize=3, markerfacecolor="none",
-                         markeredgecolor=COR_ALTA, alpha=0.5),
+                         alpha=0.5),
         zorder=3,
     )
     cores_caixa = [COR_ALTA, COR_OBITO]
@@ -379,6 +379,8 @@ def desenha_boxplot(ax, rotulo):
                                cores_caixa):
             for l in np.atleast_1d(linha):
                 l.set_color(cor)
+    for flier, cor in zip(bp["fliers"], cores_caixa):
+        flier.set_markeredgecolor(cor)
 
     ax.set_yticks([1, 2])
     ax.set_yticklabels(["Alta", "Óbito"], fontsize=10.5, color=TEXT)
