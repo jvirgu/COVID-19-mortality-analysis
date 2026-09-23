@@ -169,21 +169,45 @@ for rotulo, info in significativas.items():
 print("=" * 90)
 
 
-# Eixos com faixa fixa (sobrepõe o cálculo automático), usados quando um
-# outlier isolado e extremo (ex.: erro de digitação/unidade) distorce o
-# xlim calculado automaticamente e "esconde" a diferença visual entre os
-# grupos — como na Troponina I, onde um único resultado de 40.000 ng/L
-# força o eixo a ir muito além do restante dos dados.
-EIXO_MANUAL = {
-    "Troponina I": (-150, 3000),  # negativo para revelar o limite da janela em 0
+# Eixos com marcações fixas, reproduzindo exatamente a imagem de
+# referência (mesmas marcações em todas as variáveis).
+TICKS_MANUAL = {
+    "Creatinina": [0, 1, 2, 3, 4, 5],
+    "Ureia": [0, 25, 50, 75, 100, 125, 150, 175],
+    "D-dímero": [0, 2, 4, 6, 8, 10],
+    "TTPA": [0.8, 1.0, 1.2, 1.4],
+    "TP/INR": [0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7],
+    "HbA1c": [4, 5, 6, 7, 8, 9, 10],
+    "Glicemia/jejum": [50, 100, 150, 200, 250, 300],
+    "TGO": [0, 50, 100, 150, 200, 250],
+    "TGP": [0, 50, 100, 150, 200, 250],
+    "Bilirrubina": [0.00, 0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75],
+    "Fosfatase alcalina": [0, 100, 200, 300, 400, 500],
+    "Gama GT": [0, 100, 200, 300, 400, 500],
+    "Albumina": [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+    "Troponina I": [0, 500, 1000, 1500, 2000, 2500, 3000],
+    "CPK": [0, 500, 1000, 1500, 2000, 2500],
+    "CK-MB": [0, 10, 20, 30, 40, 50],
+    "Colesterol total": [80, 100, 120, 140, 160, 180, 200, 220],
+    "LDL colesterol": [40, 60, 80, 100, 120, 140],
+    "HDL colesterol": [20, 25, 30, 35, 40, 45, 50, 55],
+    "Ferritina": [0, 1000, 2000, 3000, 4000],
+    "Proteína C reativa": [0, 5, 10, 15, 20, 25],
+    "Lactato": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5],
+    "LDH": [0, 500, 1000, 1500, 2000],
+    "Cálcio ionizado": [0.9, 1.0, 1.1, 1.2, 1.3],
+    "Sódio": [130, 135, 140, 145, 150],
+    "Potássio": [3.0, 3.5, 4.0, 4.5, 5.0, 5.5],
+    "Magnésio": [1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8],
 }
 
 
 def limites_robustos(rotulo, folga_mult=0.05):
     """xlim robusto (ignora outliers extremos e ajusta a janela de
     referência para caber dentro dele)."""
-    if rotulo in EIXO_MANUAL:
-        return EIXO_MANUAL[rotulo]
+    if rotulo in TICKS_MANUAL:
+        ticks = TICKS_MANUAL[rotulo]
+        return ticks[0], ticks[-1]
 
     dados = dados_paciente[rotulo]
     combinado = np.concatenate([dados["alta"], dados["obito"]])
@@ -356,6 +380,8 @@ def desenha_boxplot(ax, rotulo):
         tick.set_fontweight("bold")
 
     ax.set_xlim(*xlim)
+    if rotulo in TICKS_MANUAL:
+        ax.set_xticks(TICKS_MANUAL[rotulo])
     ax.tick_params(axis="x", labelsize=9, colors=SUBTEXT)
 
     ax.text(0.5, 1.42, formata_p(info["p"]), transform=ax.transAxes,
