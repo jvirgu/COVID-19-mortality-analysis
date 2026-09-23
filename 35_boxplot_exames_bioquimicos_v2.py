@@ -296,7 +296,7 @@ top_frac = 1 - POL_TOPO / fig_h
 bottom_frac = POL_RODAPE / fig_h
 
 gs_principal = fig.add_gridspec(1, 2, left=0.04, right=0.985,
-                                 top=top_frac, bottom=bottom_frac, wspace=0.10)
+                                 top=top_frac, bottom=bottom_frac, wspace=0.20)
 
 # Linha divisória vertical entre as duas colunas de categorias
 _bottoms, _tops, _lefts, _rights = gs_principal.get_grid_positions(fig)
