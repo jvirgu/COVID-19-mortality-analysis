@@ -259,9 +259,9 @@ col_esq = categorias_com_dados[0::2]
 col_dir = categorias_com_dados[1::2]
 
 POL_TITULO_CAT = 0.42
-POL_GAP_TITULO = 0.55  # respiro entre o título da categoria e a 1ª linha
-POL_LINHA = 2.35
-POL_ESPACADOR = 1.05
+POL_GAP_TITULO = 0.28  # respiro entre o título da categoria e a 1ª linha
+POL_LINHA = 2.51
+POL_ESPACADOR = 0.55
 POL_TOPO = 1.90
 POL_RODAPE = 0.35
 
@@ -384,15 +384,15 @@ def desenha_boxplot(ax, rotulo):
         ax.set_xticks(TICKS_MANUAL[rotulo])
     ax.tick_params(axis="x", labelsize=9, colors=SUBTEXT)
 
-    ax.text(0.5, 1.42, formata_p(info["p"]), transform=ax.transAxes,
+    ax.text(0.5, 1.20, formata_p(info["p"]), transform=ax.transAxes,
             ha="center", va="bottom", fontsize=10.5, fontweight="bold",
             color=SUBTEXT)
-    ax.set_title(rotulo, fontsize=13, fontweight="bold", color=TEXT, pad=14)
+    ax.set_title(rotulo, fontsize=13, fontweight="bold", color=TEXT, pad=10)
 
-    ax.text(0.0, -0.24, f"Alta n={info['n_alta']}", transform=ax.transAxes,
+    ax.text(0.0, -0.20, f"Alta n={info['n_alta']}", transform=ax.transAxes,
             ha="left", va="top", fontsize=9, fontweight="bold", color=COR_ALTA,
             style="italic")
-    ax.text(1.0, -0.24, f"Óbito n={info['n_obito']}", transform=ax.transAxes,
+    ax.text(1.0, -0.20, f"Óbito n={info['n_obito']}", transform=ax.transAxes,
             ha="right", va="top", fontsize=9, fontweight="bold", color=COR_OBITO,
             style="italic")
 
