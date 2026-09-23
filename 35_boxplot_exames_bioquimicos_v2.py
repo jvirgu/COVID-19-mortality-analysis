@@ -185,7 +185,7 @@ TICKS_MANUAL = {
     "Fosfatase alcalina": [0, 100, 200, 300, 400, 500],
     "Gama GT": [0, 100, 200, 300, 400, 500],
     "Albumina": [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
-    "Troponina I": [0, 500, 1000, 1500, 2000, 2500, 3000],
+    "Troponina I": [0, 50, 100, 150, 200, 250, 300],
     "CPK": [0, 500, 1000, 1500, 2000, 2500],
     "CK-MB": [0, 10, 20, 30, 40, 50],
     "Colesterol total": [80, 100, 120, 140, 160, 180, 200, 220],
@@ -297,6 +297,13 @@ bottom_frac = POL_RODAPE / fig_h
 
 gs_principal = fig.add_gridspec(1, 2, left=0.04, right=0.985,
                                  top=top_frac, bottom=bottom_frac, wspace=0.10)
+
+# Linha divisória vertical entre as duas colunas de categorias
+_bottoms, _tops, _lefts, _rights = gs_principal.get_grid_positions(fig)
+x_divisor = (_rights[0] + _lefts[1]) / 2
+fig.add_artist(plt.Line2D([x_divisor, x_divisor], [bottom_frac, top_frac],
+                           transform=fig.transFigure, color="#C7CDD3",
+                           linewidth=1.1, zorder=0))
 
 
 def desenha_coluna(gs_slot, categorias, alturas):
