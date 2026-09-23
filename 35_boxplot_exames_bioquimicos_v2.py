@@ -169,9 +169,22 @@ for rotulo, info in significativas.items():
 print("=" * 90)
 
 
+# Eixos com faixa fixa (sobrepõe o cálculo automático), usados quando um
+# outlier isolado e extremo (ex.: erro de digitação/unidade) distorce o
+# xlim calculado automaticamente e "esconde" a diferença visual entre os
+# grupos — como na Troponina I, onde um único resultado de 40.000 ng/L
+# força o eixo a ir muito além do restante dos dados.
+EIXO_MANUAL = {
+    "Troponina I": (0, 3000),
+}
+
+
 def limites_robustos(rotulo, folga_mult=0.08):
     """xlim robusto (ignora outliers extremos e ajusta a janela de
     referência para caber dentro dele)."""
+    if rotulo in EIXO_MANUAL:
+        return EIXO_MANUAL[rotulo]
+
     dados = dados_paciente[rotulo]
     combinado = np.concatenate([dados["alta"], dados["obito"]])
     ref = significativas[rotulo]["ref"]
@@ -226,7 +239,7 @@ POL_GAP_TITULO = 0.55  # respiro entre o título da categoria e a 1ª linha
 POL_LINHA = 2.35
 POL_ESPACADOR = 1.05
 POL_TOPO = 1.90
-POL_RODAPE = 1.15
+POL_RODAPE = 0.35
 
 
 def unidades_coluna(categorias):
@@ -346,13 +359,16 @@ def desenha_boxplot(ax, rotulo):
     ax.tick_params(axis="x", labelsize=9, colors=SUBTEXT)
 
     ax.text(0.5, 1.42, formata_p(info["p"]), transform=ax.transAxes,
-            ha="center", va="bottom", fontsize=10.5, color=SUBTEXT)
+            ha="center", va="bottom", fontsize=10.5, fontweight="bold",
+            color=SUBTEXT)
     ax.set_title(rotulo, fontsize=13, fontweight="bold", color=TEXT, pad=14)
 
     ax.text(0.0, -0.24, f"Alta n={info['n_alta']}", transform=ax.transAxes,
-            ha="left", va="top", fontsize=9, color=COR_ALTA, style="italic")
+            ha="left", va="top", fontsize=9, fontweight="bold", color=COR_ALTA,
+            style="italic")
     ax.text(1.0, -0.24, f"Óbito n={info['n_obito']}", transform=ax.transAxes,
-            ha="right", va="top", fontsize=9, color=COR_OBITO, style="italic")
+            ha="right", va="top", fontsize=9, fontweight="bold", color=COR_OBITO,
+            style="italic")
 
 
 desenha_coluna(gs_principal[0, 0], col_esq, alturas_esq)
@@ -386,18 +402,6 @@ legend_elements = [
 fig.legend(handles=legend_elements, loc="upper left",
            bbox_to_anchor=(0.04, y_legenda), fontsize=11, frameon=False,
            labelcolor=TEXT, ncol=5, columnspacing=1.5, handlelength=1.4)
-
-fig.text(0.04, 0.34 / fig_h,
-          "Mediana por paciente calculada a partir de todos os resultados do "
-          "exame durante a internação | Eixo ajustado para excluir outliers "
-          "extremos (percentil 2-98 / 1,5×IQR) | Teste: Mann-Whitney U",
-          ha="left", va="bottom", fontsize=9.5, style="italic", color=SUBTEXT)
-fig.text(0.04, 0.10 / fig_h,
-          "Janela de referência: valores de laboratório clínico reportados "
-          "no próprio resultado do exame (VALOR_REFERENCIA), estratificados "
-          "por sexo quando disponível | Sexo M/F conforme cadastro do "
-          "laboratório",
-          ha="left", va="bottom", fontsize=9.5, style="italic", color=SUBTEXT)
 
 plt.savefig(OUTPUT_PNG, dpi=170, bbox_inches="tight", facecolor=BG)
 _buf_png = OUTPUT_PNG.replace(".png", "_300dpi_tmp.png")
