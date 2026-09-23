@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import matplotlib.ticker as mticker
 from PIL import Image
 from scipy.stats import mannwhitneyu
 
@@ -170,9 +169,9 @@ for rotulo, info in significativas.items():
 print("=" * 90)
 
 
-def limites_robustos(rotulo, folga_mult=0.18):
-    """xlim robusto (ignora outliers extremos), com folga maior para
-    espaçar melhor os ticks e valorizar as diferenças entre os grupos."""
+def limites_robustos(rotulo, folga_mult=0.08):
+    """xlim robusto (ignora outliers extremos e ajusta a janela de
+    referência para caber dentro dele)."""
     dados = dados_paciente[rotulo]
     combinado = np.concatenate([dados["alta"], dados["obito"]])
     ref = significativas[rotulo]["ref"]
@@ -344,7 +343,6 @@ def desenha_boxplot(ax, rotulo):
         tick.set_fontweight("bold")
 
     ax.set_xlim(*xlim)
-    ax.xaxis.set_major_locator(mticker.MaxNLocator(nbins=5, min_n_ticks=4))
     ax.tick_params(axis="x", labelsize=9, colors=SUBTEXT)
 
     ax.text(0.5, 1.22, formata_p(info["p"]), transform=ax.transAxes,
@@ -391,9 +389,8 @@ fig.legend(handles=legend_elements, loc="upper left",
 
 fig.text(0.04, 0.34 / fig_h,
           "Mediana por paciente calculada a partir de todos os resultados do "
-          "exame durante a internação | Eixos com maior espaçamento entre "
-          "marcações para evidenciar a diferença entre os grupos | "
-          "Teste: Mann-Whitney U",
+          "exame durante a internação | Eixo ajustado para excluir outliers "
+          "extremos (percentil 2-98 / 1,5×IQR) | Teste: Mann-Whitney U",
           ha="left", va="bottom", fontsize=9.5, style="italic", color=SUBTEXT)
 fig.text(0.04, 0.10 / fig_h,
           "Janela de referência: valores de laboratório clínico reportados "
