@@ -33,16 +33,25 @@ SUBTEXT = "#57606A"
 COR_ALTA = "#1D9E75"
 COR_OBITO = "#E0703A"
 COR_JANELA = "#D9D9D9"
+COR_JANELA_M = "#C8D9EC"
+COR_JANELA_F = "#F3D3DE"
+COR_JANELA_M_LINHA = "#6D93BE"
+COR_JANELA_F_LINHA = "#C97A94"
 
 # ════════════════════════════════════════════════════════════
 # 1. DEFINIÇÃO DAS VARIÁVEIS (rótulo -> exames/descrições a combinar)
 #    e da janela de referência geral (valores aproximados de laboratório
 #    clínico adulto, usados apenas como faixa ilustrativa de referência).
 # ════════════════════════════════════════════════════════════
+# Referência: tupla (min, max) = janela única ("geral"); dict {"M": (min,
+# max), "F": (min, max)} = janelas separadas por sexo (exibidas como duas
+# faixas sobrepostas no gráfico), usado só onde o intervalo difere bastante
+# entre homens e mulheres.
 VARS = {
-    # categoria: [(rótulo, [(EXAME, DESCRICAO), ...], (ref_min, ref_max), unidade)]
+    # categoria: [(rótulo, [(EXAME, DESCRICAO), ...], ref, unidade)]
     "Função renal": [
-        ("Creatinina", [("CREATININA", "VALOR")], (0.6, 1.2), "mg/dL"),
+        ("Creatinina", [("CREATININA", "VALOR")],
+         {"M": (0.7, 1.3), "F": (0.6, 1.1)}, "mg/dL"),
         ("Ureia", [("UREIA", "VALOR")], (15, 45), "mg/dL"),
     ],
     "Perfil trombo-hemostático": [
@@ -67,7 +76,8 @@ VARS = {
                           ("BILIRRUBINA TOTAL", "VALOR")], (0.2, 1.2), "mg/dL"),
         ("Fosfatase alcalina", [("FOSFATASE ALCALINA", "VALOR")],
          (44, 147), "U/L"),
-        ("Gama GT", [("GAMA GT", "VALOR")], (8, 61), "U/L"),
+        ("Gama GT", [("GAMA GT", "VALOR")],
+         {"M": (8, 61), "F": (5, 36)}, "U/L"),
         ("Albumina", [("ALBUMINA - SANGUE", "VALOR")], (3.5, 5.0), "g/dL"),
     ],
     "Função cardíaca": [
@@ -75,7 +85,8 @@ VARS = {
                           ("TROPONINA I - ALTA SENSIBILIDADE", "VALOR")],
          (0, 0.04), "ng/mL"),
         ("CPK", [("CPK - CREATINA QUINASE", "VALOR"),
-                 ("CREATINOFOSFOQUINASE (CPK)", "RESULTADO")], (26, 308), "U/L"),
+                 ("CREATINOFOSFOQUINASE (CPK)", "RESULTADO")],
+         {"M": (39, 308), "F": (26, 192)}, "U/L"),
         ("CK-MB", [("CK-MB - CREATINE PHOSPHOKINASE FRACAO 2", "VALOR"),
                    ("CREATINOFOSFOQUINASE OU CPK-FRACAO-MB (CADA)", "RESULTADO")],
          (0, 25), "U/L"),
@@ -83,10 +94,12 @@ VARS = {
     "Lipidograma": [
         ("Colesterol total", [("COLESTEROL TOTAL", "VALOR")], (125, 200), "mg/dL"),
         ("LDL colesterol", [("LDL COLESTEROL", "VALOR")], (0, 130), "mg/dL"),
-        ("HDL colesterol", [("HDL COLESTEROL", "VALOR")], (40, 60), "mg/dL"),
+        ("HDL colesterol", [("HDL COLESTEROL", "VALOR")],
+         {"M": (40, 60), "F": (50, 70)}, "mg/dL"),
     ],
     "Perfil inflamatório": [
-        ("Ferritina", [("FERRITINA", "Resultado")], (20, 250), "ng/mL"),
+        ("Ferritina", [("FERRITINA", "Resultado")],
+         {"M": (24, 336), "F": (11, 307)}, "ng/mL"),
         ("Proteína C reativa", [("PROTEINA C REATIVA", "VALOR"),
                                  ("DOSAGEM DE PROTEINA C REATIVA", "VALOR")],
          (0, 5), "mg/L"),
@@ -179,7 +192,12 @@ def limites_robustos(rotulo):
     de referência para caber dentro dele."""
     dados = dados_paciente[rotulo]
     combinado = np.concatenate([dados["alta"], dados["obito"]])
-    ref_min, ref_max = significativas[rotulo]["ref"]
+    ref = significativas[rotulo]["ref"]
+    if isinstance(ref, dict):
+        ref_min = min(v[0] for v in ref.values())
+        ref_max = max(v[1] for v in ref.values())
+    else:
+        ref_min, ref_max = ref
 
     p2, p98 = np.percentile(combinado, [2, 98])
     q1, q3 = np.percentile(combinado, [25, 75])
@@ -217,25 +235,25 @@ col_dir = categorias_com_dados[1::2]
 #    conhecida de polegadas, igual nas duas colunas) ────────────────────
 POL_TITULO_CAT = 0.42
 POL_LINHA = 2.35
-POL_ESPACADOR = 0.45  # respiro extra entre linhas de variáveis da mesma categoria
-POL_TOPO = 1.55   # título + subtítulo + legenda
+POL_ESPACADOR = 0.45  # respiro extra após cada linha de variáveis
+POL_TOPO = 1.90   # título + subtítulo + legenda (com folga p/ não sobrepor)
 POL_RODAPE = 1.15  # nota de rodapé (+ respiro para a última linha)
 
 
 def unidades_coluna(categorias):
     """Lista de alturas (em polegadas) de cada linha da grade da coluna:
     uma entrada POL_TITULO_CAT por categoria, POL_LINHA por linha de
-    variáveis dela, e um pequeno espaçador entre linhas de variáveis
-    consecutivas da mesma categoria (evita que os rótulos "n=" de uma
-    linha encostem no título da próxima)."""
+    variáveis dela, e um espaçador após CADA linha de variáveis — inclusive
+    a última de cada categoria — para que os rótulos "n=" (desenhados
+    abaixo dos eixos) nunca fiquem escondidos atrás do título opaco da
+    categoria seguinte."""
     alturas = []
     for c in categorias:
         alturas.append(POL_TITULO_CAT)
         n_linhas = n_linhas_categoria(c)
-        for i in range(n_linhas):
+        for _ in range(n_linhas):
             alturas.append(POL_LINHA)
-            if i < n_linhas - 1:
-                alturas.append(POL_ESPACADOR)
+            alturas.append(POL_ESPACADOR)
     return alturas
 
 
@@ -283,18 +301,18 @@ def desenha_coluna(gs_slot, categorias, alturas):
         n_linhas = n_linhas_categoria(categoria)
         for i, (rotulo, combos, ref, unidade) in enumerate(vars_sig):
             r, c = divmod(i, NCOLS_VAR)
-            # cada linha de variáveis é seguida por um espaçador (exceto a
-            # última), que ocupa uma linha extra na grade
+            # cada linha de variáveis é seguida por uma linha-espaçador na
+            # grade (inclusive a última da categoria)
             linha_grade = linha_atual + r * 2
             ax = fig.add_subplot(gs_col[linha_grade, c])
             desenha_boxplot(ax, rotulo)
-        linha_atual += n_linhas * 2 - 1
+        linha_atual += n_linhas * 2
 
 
 def desenha_boxplot(ax, rotulo):
     info = significativas[rotulo]
     dados = dados_paciente[rotulo]
-    ref_min, ref_max = info["ref"]
+    ref = info["ref"]
     xlim = limites_robustos(rotulo)
 
     ax.set_facecolor(BG)
@@ -302,13 +320,27 @@ def desenha_boxplot(ax, rotulo):
         spine.set_visible(False)
     ax.tick_params(axis="y", length=0)
 
-    # Janela de referência (faixa cinza + limites tracejados)
-    ax.axvspan(max(ref_min, xlim[0]), min(ref_max, xlim[1]), color=COR_JANELA,
-               alpha=0.55, zorder=0)
-    for limite in (ref_min, ref_max):
-        if xlim[0] < limite < xlim[1]:
-            ax.axvline(limite, color="#9AA3AC", linewidth=1.1, linestyle="--",
-                        zorder=1)
+    if isinstance(ref, dict):
+        # Duas janelas de referência sobrepostas (masculina/feminina)
+        for (r_min, r_max), cor_faixa, cor_linha in (
+            (ref["M"], COR_JANELA_M, COR_JANELA_M_LINHA),
+            (ref["F"], COR_JANELA_F, COR_JANELA_F_LINHA),
+        ):
+            ax.axvspan(max(r_min, xlim[0]), min(r_max, xlim[1]), color=cor_faixa,
+                       alpha=0.55, zorder=0)
+            for limite in (r_min, r_max):
+                if xlim[0] < limite < xlim[1]:
+                    ax.axvline(limite, color=cor_linha, linewidth=1.1,
+                                linestyle="--", zorder=1)
+    else:
+        # Janela de referência única (faixa cinza + limites tracejados)
+        ref_min, ref_max = ref
+        ax.axvspan(max(ref_min, xlim[0]), min(ref_max, xlim[1]), color=COR_JANELA,
+                   alpha=0.55, zorder=0)
+        for limite in (ref_min, ref_max):
+            if xlim[0] < limite < xlim[1]:
+                ax.axvline(limite, color="#9AA3AC", linewidth=1.1, linestyle="--",
+                            zorder=1)
 
     bp = ax.boxplot(
         [dados["obito"], dados["alta"]], vert=False, widths=0.55,
@@ -354,8 +386,8 @@ desenha_coluna(gs_principal[0, 1], col_dir, alturas_dir)
 
 # ── Título, subtítulo e legenda ─────────────────────────────────────────
 y_titulo = 1 - (0.42 / fig_h)
-y_subtitulo = 1 - (0.80 / fig_h)
-y_legenda = 1 - (1.28 / fig_h)
+y_subtitulo = 1 - (0.85 / fig_h)
+y_legenda = 1 - (1.38 / fig_h)
 
 fig.text(0.04, y_titulo,
           "Exames Bioquímicos, Trombo-Hemostáticos e Inflamatórios por "
@@ -373,17 +405,27 @@ legend_elements = [
     mpatches.Patch(facecolor=COR_OBITO, edgecolor=COR_OBITO, label="Óbito — box plot"),
     mpatches.Patch(facecolor=COR_JANELA, edgecolor="#9AA3AC",
                    label="Janela de referência (geral, adulto)"),
+    mpatches.Patch(facecolor=COR_JANELA_M, edgecolor=COR_JANELA_M_LINHA,
+                   label="Janela de referência (masc.)"),
+    mpatches.Patch(facecolor=COR_JANELA_F, edgecolor=COR_JANELA_F_LINHA,
+                   label="Janela de referência (fem.)"),
 ]
 fig.legend(handles=legend_elements, loc="upper left",
            bbox_to_anchor=(0.04, y_legenda), fontsize=11, frameon=False,
-           labelcolor=TEXT, ncol=3, columnspacing=1.5, handlelength=1.4)
+           labelcolor=TEXT, ncol=5, columnspacing=1.5, handlelength=1.4)
 
-fig.text(0.04, 0.10 / fig_h,
+fig.text(0.04, 0.34 / fig_h,
           "Mediana por paciente calculada a partir de todos os resultados do "
-          "exame durante a internação | Janela de referência: valores "
-          "aproximados de laboratório clínico adulto (não estratificados "
-          "por sexo) | Eixo ajustado para excluir outliers extremos "
-          "(percentil 2-98 / 1,5×IQR) | Teste: Mann-Whitney U",
+          "exame durante a internação | Eixo ajustado para excluir outliers "
+          "extremos (percentil 2-98 / 1,5×IQR) | Teste: Mann-Whitney U",
+          ha="left", va="bottom", fontsize=9.5, style="italic", color=SUBTEXT)
+fig.text(0.04, 0.10 / fig_h,
+          "Janela de referência: valores aproximados de laboratório clínico "
+          "adulto; estratificada por sexo (masc./fem.) para Creatinina, Gama "
+          "GT, CPK, HDL colesterol e Ferritina, janela única (geral) para as "
+          "demais variáveis | Sexo inferido empiricamente a partir de "
+          "marcadores laboratoriais sexo-dimórficos (Creatinina, CPK, "
+          "Ferritina), pois a codificação não é documentada na base original",
           ha="left", va="bottom", fontsize=9.5, style="italic", color=SUBTEXT)
 
 plt.savefig(OUTPUT_PNG, dpi=170, bbox_inches="tight", facecolor=BG)
