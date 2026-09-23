@@ -175,11 +175,11 @@ print("=" * 90)
 # grupos — como na Troponina I, onde um único resultado de 40.000 ng/L
 # força o eixo a ir muito além do restante dos dados.
 EIXO_MANUAL = {
-    "Troponina I": (0, 3000),
+    "Troponina I": (-150, 3000),  # negativo para revelar o limite da janela em 0
 }
 
 
-def limites_robustos(rotulo, folga_mult=0.08):
+def limites_robustos(rotulo, folga_mult=0.05):
     """xlim robusto (ignora outliers extremos e ajusta a janela de
     referência para caber dentro dele)."""
     if rotulo in EIXO_MANUAL:
